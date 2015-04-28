@@ -25,6 +25,7 @@ files[] = classes/group_type.controller.inc
 files[] = classes/group_type.ui_controller.inc
 files[] = classes/group_type.features_controller.inc
 
+files[] = views/group_plugin_access_group_role.inc
 files[] = views/handlers/group_handler_field_child_entity_count.inc
 files[] = views/handlers/group_handler_field_membership_role.inc
 files[] = views/handlers/group_handler_filter_membership_role.inc
