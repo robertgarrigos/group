@@ -109,6 +109,48 @@ class GroupPermissionsHashGenerator implements GroupPermissionsHashGeneratorInte
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function generateAnonymous() {
+    $cid = 'group_anonymous_permissions_hash';
+
+    // Retrieve the hash from the static cache if available.
+    if ($static_cache = $this->static->get($cid)) {
+      return $static_cache->data;
+    }
+    // Retrieve the hash from the persistent cache if available.
+    elseif ($cache = $this->cache->get($cid)) {
+      $permissions_hash = $cache->data;
+      $tags = $cache->tags;
+    }
+    // Otherwise generate the hash and store it in the persistent cache.
+    else {
+      $permissions = [];
+
+      // If a new group type is introduced, we need to recalculate the anonymous
+      // permissions hash. Therefore, we need to introduce the group type list
+      // cache tag.
+      $tags = ['group_type_list'];
+
+      /** @var \Drupal\group\Entity\GroupTypeInterface $group_type */
+      $storage = $this->entityTypeManager->getStorage('goup_type');
+      foreach ($storage->loadMultiple() as $group_type_id => $group_type) {
+        $group_role = $group_type->getAnonymousRole();
+        $permissions[$group_type_id] = $group_role->getPermissions();
+        $tags = Cache::mergeTags($tags, $group_role->getCacheTags());
+      }
+
+      $permissions_hash = $this->hash(serialize($permissions));
+      $this->cache->set($cid, $permissions_hash, Cache::PERMANENT, $tags);
+    }
+
+    // Store the hash in the static cache.
+    $this->static->set($cid, $permissions_hash, Cache::PERMANENT, $tags);
+
+    return $permissions_hash;
+  }
+
+  /**
    * Generates a hash that uniquely identifies the group member's permissions.
    *
    * @param \Drupal\group\Entity\GroupRoleInterface[] $group_roles

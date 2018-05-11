@@ -23,4 +23,12 @@ interface GroupPermissionsHashGeneratorInterface {
    */
   public function generate(GroupInterface $group, AccountInterface $account);
 
+  /**
+   * Generates a hash that uniquely identifies the anonymous group permissions.
+   *
+   * @return string
+   *   A permissions hash.
+   */
+  public function generateAnonymous();
+
 }
