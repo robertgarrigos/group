@@ -66,11 +66,9 @@ class GroupPermissionsCacheContext {
    */
   public function getContext() {
     if ($this->user->isAnonymous()) {
-      return $this->permissionsHashGenerator->generateAnonymous();
+      return $this->permissionsHashGenerator->generateAnonymousHash();
     }
-
-    // @todo Generate for authenticated including memberships.
-    return $this->permissionsHashGenerator->generate($this->group, $this->user);
+    return $this->permissionsHashGenerator->generateAuthenticatedHash($this->user);
   }
 
   /**

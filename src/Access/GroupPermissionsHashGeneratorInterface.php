@@ -29,6 +29,39 @@ interface GroupPermissionsHashGeneratorInterface {
    * @return string
    *   A permissions hash.
    */
-  public function generateAnonymous();
+  public function generateAnonymousHash();
+
+  /**
+   * Generates a hash for an authenticated user's outsider permissions.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   The user account for which to get the permissions hash.
+   *
+   * @return string
+   *   A permissions hash.
+   */
+  public function generateOutsiderHash(AccountInterface $account);
+
+  /**
+   * Generates a hash for an authenticated user's member permissions.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   The user account for which to get the permissions hash.
+   *
+   * @return string
+   *   A permissions hash.
+   */
+  public function generateMemberHash(AccountInterface $account);
+
+  /**
+   * Generates a hash for an authenticated user's complete group permissions.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   The user account for which to get the permissions hash.
+   *
+   * @return string
+   *   A permissions hash.
+   */
+  public function generateAuthenticatedHash(AccountInterface $account);
 
 }
