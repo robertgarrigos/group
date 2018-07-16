@@ -9,6 +9,8 @@ use Drupal\Core\PrivateKey;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\group\Entity\GroupInterface;
+use Drupal\group\GroupMembershipLoaderInterface;
+use Drupal\group\GroupRoleSynchronizerInterface;
 
 /**
  * Generates and caches the permissions hash for a group membership.
@@ -44,6 +46,20 @@ class GroupPermissionsHashGenerator implements GroupPermissionsHashGeneratorInte
   protected $entityTypeManager;
 
   /**
+   * The group role synchronizer service.
+   *
+   * @var \Drupal\group\GroupRoleSynchronizerInterface
+   */
+  protected $groupRoleSynchronizer;
+
+  /**
+   * The membership loader service.
+   *
+   * @var \Drupal\group\GroupMembershipLoaderInterface
+   */
+  protected $membershipLoader;
+
+  /**
    * Constructs a GroupPermissionsHashGenerator object.
    *
    * @param \Drupal\Core\PrivateKey $private_key
@@ -54,12 +70,18 @@ class GroupPermissionsHashGenerator implements GroupPermissionsHashGeneratorInte
    *   The cache backend interface to use for the static cache.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
+   * @param \Drupal\group\GroupRoleSynchronizerInterface $group_role_synchronizer
+   *   The group role synchronizer service.
+   * @param \Drupal\group\GroupMembershipLoaderInterface $membership_loader
+   *   The group role synchronizer service.
    */
-  public function __construct(PrivateKey $private_key, CacheBackendInterface $cache, CacheBackendInterface $static, EntityTypeManagerInterface $entity_type_manager) {
+  public function __construct(PrivateKey $private_key, CacheBackendInterface $cache, CacheBackendInterface $static, EntityTypeManagerInterface $entity_type_manager, GroupRoleSynchronizerInterface $group_role_synchronizer, GroupMembershipLoaderInterface $membership_loader) {
     $this->privateKey = $private_key;
     $this->cache = $cache;
     $this->static = $static;
     $this->entityTypeManager = $entity_type_manager;
+    $this->groupRoleSynchronizer = $group_role_synchronizer;
+    $this->membershipLoader = $membership_loader;
   }
 
   /**
@@ -192,8 +214,7 @@ class GroupPermissionsHashGenerator implements GroupPermissionsHashGeneratorInte
 
         $group_role_ids = [];
         foreach ($roles as $role_id) {
-          // @todo Inject the synchronizer.
-          $group_role_ids[] = _group_role_synchronizer()->getGroupRoleId($group_type, $role_id);
+          $group_role_ids[] = $this->groupRoleSynchronizer->getGroupRoleId($group_type, $role_id);
         }
 
         if (!empty($group_role_ids)) {
@@ -228,7 +249,61 @@ class GroupPermissionsHashGenerator implements GroupPermissionsHashGeneratorInte
    * {@inheritdoc}
    */
   public function generateMemberHash(AccountInterface $account) {
-    // TODO: Implement generateMemberHash() method.
+    $cid = 'group_member_permissions_hash_' . $account->id();
+
+    // Retrieve the hash from the static cache if available.
+    if ($static_cache = $this->static->get($cid)) {
+      return $static_cache->data;
+    }
+    // Retrieve the hash from the persistent cache if available.
+    elseif ($cache = $this->cache->get($cid)) {
+      $permissions_hash = $cache->data;
+      $tags = $cache->tags;
+    }
+    // Otherwise generate the hash and store it in the persistent cache.
+    else {
+      $permissions = [];
+
+      // If the user gets added to or removed from a group, their account will be
+      // re-saved in GroupContent::postDelete() and GroupContent::postSave(). This
+      // means we can add the user's cache tags to invalidate this cache whenever
+      // the user is saved.
+      $tags = $account->getCacheTagsToInvalidate();
+
+      foreach ($this->membershipLoader->loadByUser($account) as $group_membership) {
+        $group_id = $group_membership->getGroup()->id();
+        $permissions[$group_id] = [];
+
+        Cache::mergeTags($tags, $group_membership->getCacheTags());
+
+        foreach ($group_membership->getRoles() as $group_role) {
+          $permissions[$group_id] = array_merge($permissions[$group_id], $group_role->getPermissions());
+          $tags = Cache::mergeTags($tags, $group_role->getCacheTags());
+        }
+
+        // Make sure the permissions only appear once per group.
+        $permissions[$group_id] = array_unique($permissions[$group_id]);
+
+        // Because we're combining permissions from several roles, we cannot be
+        // sure about the order of permissions across different user role
+        // combinations. To avoid some serious edge cases, it's safer if we sort
+        // the total set of permissions.
+        sort($permissions[$group_id]);
+      }
+
+      // Sort the user's groups by group ID to make sure we do not get
+      // incompatible hashes for users who have the same group permissions, just
+      // because their memberships load groups in a different order.
+      ksort($permissions);
+
+      $permissions_hash = $this->hash(serialize($permissions));
+      $this->cache->set($cid, $permissions_hash, Cache::PERMANENT, $tags);
+    }
+
+    // Store the hash in the static cache.
+    $this->static->set($cid, $permissions_hash, Cache::PERMANENT, $tags);
+
+    return $permissions_hash;
   }
 
   /**

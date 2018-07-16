@@ -84,7 +84,7 @@ services:
     arguments: ['@module_handler', '@string_translation', '@controller_resolver', '@plugin.manager.group_content_enabler']
   group.permissions_hash_generator:
     class: 'Drupal\group\Access\GroupPermissionsHashGenerator'
-    arguments: ['@private_key', '@cache.default', '@cache.static', '@entity_type.manager']
+    arguments: ['@private_key', '@cache.default', '@cache.static', '@entity_type.manager', '@group_role.synchronizer', '@group.membership_loader']
   group.uninstall_validator.group_content:
     class: 'Drupal\group\UninstallValidator\GroupContentUninstallValidator'
     tags:
