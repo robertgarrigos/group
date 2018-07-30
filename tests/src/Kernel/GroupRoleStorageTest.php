@@ -35,6 +35,13 @@ class GroupRoleStorageTest extends GroupKernelTestBase {
   protected $account;
 
   /**
+   * The group role synchronizer service.
+   *
+   * @var \Drupal\group\GroupRoleSynchronizer
+   */
+  protected $groupRoleSynchronizer;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp() {
@@ -43,13 +50,7 @@ class GroupRoleStorageTest extends GroupKernelTestBase {
 
     $this->group = $this->createGroup();
     $this->account = $this->createUser();
-
-    $this->storage->create([
-      'id' => 'default-editor',
-      'label' => 'Default editor',
-      'weight' => 0,
-      'group_type' => 'default',
-    ])->save();
+    $this->groupRoleSynchronizer = $this->container->get('group_role.synchronizer');
   }
 
   /**
@@ -65,7 +66,7 @@ class GroupRoleStorageTest extends GroupKernelTestBase {
     $this->entityTypeManager->getStorage('user_role')->create(['id' => 'publisher'])->save();
     $this->account->addRole('publisher');
     $this->account->save();
-    $group_role_id = _group_role_synchronizer()->getGroupRoleId('default', 'publisher');
+    $group_role_id = $this->groupRoleSynchronizer->getGroupRoleId('default', 'publisher');
     $this->compareMemberRoles([], FALSE, 'User has no explicit group roles as they are not a member.');
     $this->compareMemberRoles([$group_role_id, 'default-outsider'], TRUE, 'User has implicit and synchronized outsider roles.');
 
@@ -75,6 +76,12 @@ class GroupRoleStorageTest extends GroupKernelTestBase {
     $this->compareMemberRoles(['default-member'], TRUE, 'User has implicit member role now that they have joined the group.');
 
     // Grant the member a new group role and check the storage.
+    $this->storage->create([
+      'id' => 'default-editor',
+      'label' => 'Default editor',
+      'weight' => 0,
+      'group_type' => 'default',
+    ])->save();
     // @todo This displays a desperate need for addRole() and removeRole().
     $membership = $this->group->getMember($this->account)->getGroupContent();
     $membership->group_roles[] = 'default-editor';

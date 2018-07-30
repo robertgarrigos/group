@@ -257,36 +257,39 @@ class GroupType extends ConfigEntityBundleBase implements GroupTypeInterface {
       // We do not create group roles or group content types for a synced group
       // type because those should have been exported along with the group type.
       if (!$this->isSyncing()) {
+        /** @var \Drupal\group\Entity\Storage\GroupRoleStorageInterface $group_role_storage */
+        $group_role_storage = $this->entityTypeManager()->getStorage('group_role');
+
         // Create the three special roles for the group type.
-        GroupRole::create([
+        $group_role_storage->save($group_role_storage->create([
           'id' => $this->getAnonymousRoleId(),
           'label' => t('Anonymous'),
           'weight' => -102,
           'internal' => TRUE,
           'audience' => 'anonymous',
           'group_type' => $group_type_id,
-        ])->save();
-        GroupRole::create([
+        ]));
+        $group_role_storage->save($group_role_storage->create([
           'id' => $this->getOutsiderRoleId(),
           'label' => t('Outsider'),
           'weight' => -101,
           'internal' => TRUE,
           'audience' => 'outsider',
           'group_type' => $group_type_id,
-        ])->save();
-        GroupRole::create([
+        ]));
+        $group_role_storage->save($group_role_storage->create([
           'id' => $this->getMemberRoleId(),
           'label' => t('Member'),
           'weight' => -100,
           'internal' => TRUE,
           'group_type' => $group_type_id,
-        ])->save();
+        ]));
 
         // Enable enforced content plugins for new group types.
         $this->getContentEnablerManager()->installEnforced($this);
 
         // Synchronize outsider roles for new group types.
-        $this->getGroupRoleSynchronizer()->createGroupRoles([$group_type_id]);
+        $group_role_storage->createSynchronized([$group_type_id]);
       }
     }
   }

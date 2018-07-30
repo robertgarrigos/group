@@ -73,7 +73,7 @@ class GroupPermissionsHashGenerator implements GroupPermissionsHashGeneratorInte
    * @param \Drupal\group\GroupRoleSynchronizerInterface $group_role_synchronizer
    *   The group role synchronizer service.
    * @param \Drupal\group\GroupMembershipLoaderInterface $membership_loader
-   *   The group role synchronizer service.
+   *   The group membership loader service.
    */
   public function __construct(PrivateKey $private_key, CacheBackendInterface $cache, CacheBackendInterface $static, EntityTypeManagerInterface $entity_type_manager, GroupRoleSynchronizerInterface $group_role_synchronizer, GroupMembershipLoaderInterface $membership_loader) {
     $this->privateKey = $private_key;

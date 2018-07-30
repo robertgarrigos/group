@@ -75,6 +75,8 @@ class GroupRoleSynchronizerTest extends UnitTestCase {
   /**
    * @covers ::createGroupRoles
    * @depends testGetGroupRoleId
+   *
+   * @todo Rewrite this as a unit test for GroupRoleStorage.
    */
   public function testCreateGroupRoles() {
     // Set up the global 'anonymous', 'authenticated' and 'baz' roles.
@@ -137,6 +139,8 @@ class GroupRoleSynchronizerTest extends UnitTestCase {
   /**
    * @covers ::updateGroupRoleLabels
    * @depends testGetGroupRoleId
+   *
+   * @todo Rewrite this as a unit test for GroupRoleStorage.
    */
   public function testUpdateGroupRoleLabels() {
     // Set up the global role.
