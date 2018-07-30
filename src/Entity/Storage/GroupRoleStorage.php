@@ -136,6 +136,20 @@ class GroupRoleStorage extends ConfigEntityStorage implements GroupRoleStorageIn
   /**
    * {@inheritdoc}
    */
+  public function loadSynchronizedByGroupTypes(array $group_type_ids) {
+    return $this->loadMultiple($this->groupRoleSynchronizer->getGroupRoleIdsByGroupTypes($group_type_ids));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function loadSynchronizedByUserRoles(array $role_ids) {
+    return $this->loadMultiple($this->groupRoleSynchronizer->getGroupRoleIdsByUserRoles($role_ids));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function createSynchronized($group_type_ids = NULL, $role_ids = NULL) {
     // Load all possible group type IDs if none were provided.
     if (empty($group_type_ids)) {

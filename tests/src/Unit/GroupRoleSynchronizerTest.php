@@ -32,6 +32,9 @@ class GroupRoleSynchronizerTest extends UnitTestCase {
    */
   protected $groupRoleSynchronizer;
 
+  /**
+   * {@inheritdoc}
+   */
   public function setUp() {
     parent::setUp();
     $this->entityTypeManager = $this->prophesize(EntityTypeManagerInterface::class);
@@ -60,6 +63,21 @@ class GroupRoleSynchronizerTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::getGroupRoleIdsByGroupTypes
+   * @depends testGetGroupRoleId
+   */
+  public function testGetGroupRoleIdsByGroupTypes() {
+    $this->setUpConfigEntityStorage('user_role', ['bar', 'baz']);
+    $expected = [
+      $this->groupRoleSynchronizer->getGroupRoleId('foo', 'bar'),
+      $this->groupRoleSynchronizer->getGroupRoleId('foo', 'baz'),
+      $this->groupRoleSynchronizer->getGroupRoleId('bee', 'bar'),
+      $this->groupRoleSynchronizer->getGroupRoleId('bee', 'baz'),
+    ];
+    $this->assertEquals($expected, $this->groupRoleSynchronizer->getGroupRoleIdsByGroupTypes(['foo', 'bee']));
+  }
+
+  /**
    * @covers ::getGroupRoleIdsByUserRole
    * @depends testGetGroupRoleId
    */
@@ -70,6 +88,21 @@ class GroupRoleSynchronizerTest extends UnitTestCase {
       $this->groupRoleSynchronizer->getGroupRoleId('bar', 'baz'),
     ];
     $this->assertEquals($expected, $this->groupRoleSynchronizer->getGroupRoleIdsByUserRole('baz'));
+  }
+
+  /**
+   * @covers ::getGroupRoleIdsByUserRoles
+   * @depends testGetGroupRoleId
+   */
+  public function testGetGroupRoleIdsByUserRoles() {
+    $this->setUpConfigEntityStorage('group_type', ['foo', 'bar']);
+    $expected = [
+      $this->groupRoleSynchronizer->getGroupRoleId('foo', 'baz'),
+      $this->groupRoleSynchronizer->getGroupRoleId('bar', 'baz'),
+      $this->groupRoleSynchronizer->getGroupRoleId('foo', 'ook'),
+      $this->groupRoleSynchronizer->getGroupRoleId('bar', 'ook'),
+    ];
+    $this->assertEquals($expected, $this->groupRoleSynchronizer->getGroupRoleIdsByUserRoles(['baz', 'ook']));
   }
 
   /**
