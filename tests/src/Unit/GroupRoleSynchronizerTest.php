@@ -70,8 +70,8 @@ class GroupRoleSynchronizerTest extends UnitTestCase {
     $this->setUpConfigEntityStorage('user_role', ['bar', 'baz']);
     $expected = [
       $this->groupRoleSynchronizer->getGroupRoleId('foo', 'bar'),
-      $this->groupRoleSynchronizer->getGroupRoleId('foo', 'baz'),
       $this->groupRoleSynchronizer->getGroupRoleId('bee', 'bar'),
+      $this->groupRoleSynchronizer->getGroupRoleId('foo', 'baz'),
       $this->groupRoleSynchronizer->getGroupRoleId('bee', 'baz'),
     ];
     $this->assertEquals($expected, $this->groupRoleSynchronizer->getGroupRoleIdsByGroupTypes(['foo', 'bee']));
@@ -98,8 +98,8 @@ class GroupRoleSynchronizerTest extends UnitTestCase {
     $this->setUpConfigEntityStorage('group_type', ['foo', 'bar']);
     $expected = [
       $this->groupRoleSynchronizer->getGroupRoleId('foo', 'baz'),
-      $this->groupRoleSynchronizer->getGroupRoleId('bar', 'baz'),
       $this->groupRoleSynchronizer->getGroupRoleId('foo', 'ook'),
+      $this->groupRoleSynchronizer->getGroupRoleId('bar', 'baz'),
       $this->groupRoleSynchronizer->getGroupRoleId('bar', 'ook'),
     ];
     $this->assertEquals($expected, $this->groupRoleSynchronizer->getGroupRoleIdsByUserRoles(['baz', 'ook']));
