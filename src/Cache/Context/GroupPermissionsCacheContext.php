@@ -5,7 +5,7 @@ namespace Drupal\group\Cache\Context;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\Context\CacheContextInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\group\Access\GroupPermissionsHashGeneratorInterface;
 use Drupal\group\GroupMembershipLoaderInterface;
 
@@ -22,11 +22,11 @@ use Drupal\group\GroupMembershipLoaderInterface;
 class GroupPermissionsCacheContext implements CacheContextInterface {
 
   /**
-   * The account object.
+   * The current user.
    *
-   * @var \Drupal\Core\Session\AccountInterface
+   * @var \Drupal\Core\Session\AccountProxyInterface
    */
-  protected $user;
+  protected $currentUser;
 
   /**
    * The entity type manager.
@@ -52,7 +52,7 @@ class GroupPermissionsCacheContext implements CacheContextInterface {
   /**
    * Constructs a new GroupMembershipPermissionsCacheContext class.
    *
-   * @param \Drupal\Core\Session\AccountInterface $user
+   * @param \Drupal\Core\Session\AccountProxyInterface $current_user
    *   The current user.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
@@ -61,8 +61,8 @@ class GroupPermissionsCacheContext implements CacheContextInterface {
    * @param \Drupal\group\GroupMembershipLoaderInterface $membership_loader
    *   The group membership loader service.
    */
-  public function __construct(AccountInterface $user, EntityTypeManagerInterface $entity_type_manager, GroupPermissionsHashGeneratorInterface $hash_generator, GroupMembershipLoaderInterface $membership_loader) {
-    $this->user = $user;
+  public function __construct(AccountProxyInterface $current_user, EntityTypeManagerInterface $entity_type_manager, GroupPermissionsHashGeneratorInterface $hash_generator, GroupMembershipLoaderInterface $membership_loader) {
+    $this->currentUser = $current_user;
     $this->entityTypeManager = $entity_type_manager;
     $this->permissionsHashGenerator = $hash_generator;
     $this->membershipLoader = $membership_loader;
@@ -79,26 +79,25 @@ class GroupPermissionsCacheContext implements CacheContextInterface {
    * {@inheritdoc}
    */
   public function getContext() {
-    if ($this->user->isAnonymous()) {
+    if ($this->currentUser->isAnonymous()) {
       return $this->permissionsHashGenerator->generateAnonymousHash();
     }
-    return $this->permissionsHashGenerator->generateAuthenticatedHash($this->user);
+    return $this->permissionsHashGenerator->generateAuthenticatedHash($this->currentUser);
   }
 
   /**
    * {@inheritdoc}
    */
   public function getCacheableMetadata() {
-    $cacheable_metadata = new CacheableMetadata();
-
     // If the user is anonymous, the result of this cache context may change
     // when any anonymous group role is updated.
-    if ($this->user->isAnonymous()) {
+    if ($this->currentUser->isAnonymous()) {
+      $cacheable_metadata = new CacheableMetadata();
+
       /** @var \Drupal\group\Entity\GroupTypeInterface $group_type */
       $storage = $this->entityTypeManager->getStorage('group_type');
       foreach ($storage->loadMultiple() as $group_type_id => $group_type) {
-        $group_role_cacheable_metadata = new CacheableMetadata();
-        $group_role_cacheable_metadata->createFromObject($group_type->getAnonymousRole());
+        $group_role_cacheable_metadata = CacheableMetadata::createFromObject($group_type->getAnonymousRole());
         $cacheable_metadata->merge($group_role_cacheable_metadata);
       }
     }
@@ -107,36 +106,32 @@ class GroupPermissionsCacheContext implements CacheContextInterface {
       // - they are updated to have different roles
       // - they join a group
       // - they leave a group
-      $cacheable_metadata->createFromObject($this->user);
+      $cacheable_metadata = CacheableMetadata::createFromObject($this->currentUser->getAccount());
 
       // - any of the outsider roles are updated
       /** @var \Drupal\group\Entity\GroupTypeInterface $group_type */
       $storage = $this->entityTypeManager->getStorage('group_type');
       foreach ($storage->loadMultiple() as $group_type_id => $group_type) {
-        $group_role_cacheable_metadata = new CacheableMetadata();
-        $group_role_cacheable_metadata->createFromObject($group_type->getOutsiderRole());
+        $group_role_cacheable_metadata = CacheableMetadata::createFromObject($group_type->getOutsiderRole());
         $cacheable_metadata->merge($group_role_cacheable_metadata);
       }
 
       // - any of their synchronized outsider roles are updated
       /** @var \Drupal\group\Entity\Storage\GroupRoleStorageInterface $storage */
       $storage = $this->entityTypeManager->getStorage('group_role');
-      foreach ($storage->loadSynchronizedByUserRoles($this->user->getRoles(TRUE)) as $group_role) {
-        $group_role_cacheable_metadata = new CacheableMetadata();
-        $group_role_cacheable_metadata->createFromObject($group_role);
+      foreach ($storage->loadSynchronizedByUserRoles($this->currentUser->getRoles(TRUE)) as $group_role) {
+        $group_role_cacheable_metadata = CacheableMetadata::createFromObject($group_role);
         $cacheable_metadata->merge($group_role_cacheable_metadata);
       }
 
       // - any of their member roles are updated
       // - any of their memberships are updated
-      foreach ($this->membershipLoader->loadByUser($this->user) as $group_membership) {
-        $membership_cacheable_metadata = new CacheableMetadata();
-        $membership_cacheable_metadata->createFromObject($group_membership);
+      foreach ($this->membershipLoader->loadByUser($this->currentUser) as $group_membership) {
+        $membership_cacheable_metadata = CacheableMetadata::createFromObject($group_membership);
         $cacheable_metadata->merge($membership_cacheable_metadata);
 
         foreach ($group_membership->getRoles() as $group_role) {
-          $group_role_cacheable_metadata = new CacheableMetadata();
-          $group_role_cacheable_metadata->createFromObject($group_role);
+          $group_role_cacheable_metadata = CacheableMetadata::createFromObject($group_role);
           $cacheable_metadata->merge($group_role_cacheable_metadata);
         }
       }

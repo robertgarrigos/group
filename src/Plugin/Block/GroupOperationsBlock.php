@@ -21,22 +21,12 @@ class GroupOperationsBlock extends BlockBase {
    * {@inheritdoc}
    */
   public function build() {
-    // This block varies per group type and per current user's group membership
-    // permissions. Different group types could have different content plugins
-    // enabled, influencing which group operations are available to them. The
-    // active user's group permissions define which actions are accessible.
-    //
-    // We do not need to specify the current user or group as cache contexts
-    // because, in essence, a group membership is a union of both.
-    $build['#cache']['contexts'] = ['group.type', 'group_membership.roles.permissions'];
-
-    // Of special note is the cache context 'group_membership.audience'. Where
-    // the above cache contexts should suffice if everything is ran through the
-    // permission system, group operations are an exception. Some operations
-    // such as 'join' and 'leave' not only check for a permission, but also the
-    // audience the user belongs to. I.e.: whether they're a 'member', an
-    // 'outsider' or 'anonymous'.
-    $build['#cache']['contexts'][] = 'group_membership.audience';
+    // The operations available in this block vary per the current user's group
+    // permissions. It obviously also varies per group, but we cannot know for
+    // sure how we got that group as it is up to the context provider to
+    // implement that. This block will then inherit the appropriate cacheability
+    // metadata from the context, as set by the context provider.
+    $build['#cache']['contexts'] = ['user.group_permissions'];
 
     /** @var \Drupal\group\Entity\GroupInterface $group */
     if (($group = $this->getContextValue('group')) && $group->id()) {
@@ -57,8 +47,8 @@ class GroupOperationsBlock extends BlockBase {
 
         // Create an operations element with all of the links.
         $build['#type'] = 'operations';
-        // @todo We should have operation links provide cacheable metadata that
-        // we could then merge in here.
+        // @todo Use user.is_group_member on the join operation and merge in.
+        // @todo Use user.is_group_member on the leave operation and merge in.
         $build['#links'] = $links;
       }
     }

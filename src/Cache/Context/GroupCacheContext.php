@@ -15,6 +15,9 @@ use Drupal\Core\Cache\Context\CacheContextInterface;
  * service. See an example at: \Drupal\group\Plugin\Block\GroupOperationsBlock.
  *
  * Cache context ID: 'group'.
+ *
+ * @deprecated in Group 1.0-rc3, will be removed before Group 1.0. Use
+ *   \Drupal\group\Cache\Context\RouteGroupCacheContext instead.
  */
 class GroupCacheContext extends GroupCacheContextBase implements CacheContextInterface {
 
