@@ -2,6 +2,7 @@
 
 namespace Drupal\group\Plugin\GroupContentEnabler;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\group\Access\GroupAccessResult;
 use Drupal\group\Entity\GroupInterface;
 use Drupal\group\Entity\GroupContentInterface;
@@ -37,12 +38,16 @@ class GroupMembership extends GroupContentEnablerBase {
     $account = \Drupal::currentUser();
     $operations = [];
 
+    $cacheable_metadata = new CacheableMetadata();
+    $cacheable_metadata->setCacheTags(['user.is_group_member:' . $group->id()]);
+
     if ($group->getMember($account)) {
       if ($group->hasPermission('leave group', $account)) {
         $operations['group-leave'] = [
           'title' => $this->t('Leave group'),
           'url' => new Url('entity.group.leave', ['group' => $group->id()]),
           'weight' => 99,
+          'cacheability' => $cacheable_metadata,
         ];
       }
     }
@@ -51,6 +56,7 @@ class GroupMembership extends GroupContentEnablerBase {
         'title' => $this->t('Join group'),
         'url' => new Url('entity.group.join', ['group' => $group->id()]),
         'weight' => 0,
+        'cacheability' => $cacheable_metadata,
       ];
     }
 

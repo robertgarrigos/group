@@ -3,6 +3,7 @@
 namespace Drupal\group\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Cache\CacheableMetadata;
 
 /**
  * Provides a block with operations the user can perform on a group.
@@ -21,12 +22,14 @@ class GroupOperationsBlock extends BlockBase {
    * {@inheritdoc}
    */
   public function build() {
+    $cacheable_metadata = new CacheableMetadata();
+
     // The operations available in this block vary per the current user's group
     // permissions. It obviously also varies per group, but we cannot know for
     // sure how we got that group as it is up to the context provider to
-    // implement that. This block will then inherit the appropriate cacheability
+    // implement that. This block will then inherit the appropriate cacheable
     // metadata from the context, as set by the context provider.
-    $build['#cache']['contexts'] = ['user.group_permissions'];
+    $cacheable_metadata->setCacheTags(['user.group_permissions']);
 
     /** @var \Drupal\group\Entity\GroupInterface $group */
     if (($group = $this->getContextValue('group')) && $group->id()) {
@@ -47,13 +50,20 @@ class GroupOperationsBlock extends BlockBase {
 
         // Create an operations element with all of the links.
         $build['#type'] = 'operations';
-        // @todo Use user.is_group_member on the join operation and merge in.
-        // @todo Use user.is_group_member on the leave operation and merge in.
         $build['#links'] = $links;
+
+        // Merge in the cacheability provided by the links.
+        foreach ($links as $link) {
+          if (!empty($link['cacheability'])) {
+            $cacheable_metadata->merge($link['cacheability']);
+          }
+        }
       }
     }
 
-    // If no group was found, cache the empty result on the route.
+    // Set the cacheable metadata on the build.
+    $cacheable_metadata->applyTo($build);
+
     return $build;
   }
 

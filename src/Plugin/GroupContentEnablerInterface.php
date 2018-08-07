@@ -171,6 +171,8 @@ interface GroupContentEnablerInterface extends PluginInspectionInterface, Deriva
    *   - title: The localized title of the operation.
    *   - url: An instance of \Drupal\Core\Url for the operation URL.
    *   - weight: The weight of the operation.
+   *   - cacheability: (optional) The cacheable metadata for the operation. Must
+   *     be an instance of \Drupal\Core\Cache\CacheableMetadata.
    */
   public function getGroupOperations(GroupInterface $group);
 
